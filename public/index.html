@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Snakes and Ladders</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; }
+  #board { display: grid; grid-template-columns: repeat(10, 40px); grid-template-rows: repeat(10, 40px); margin: auto; width: 400px; }
+  .cell { border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; font-size: 12px; position: relative; }
+  .player { position: absolute; bottom: 2px; left: 2px; background: yellow; border-radius: 50%; width: 10px; height: 10px; }
+</style>
+</head>
+<body>
+<h1>Snakes and Ladders</h1>
+<div id="board"></div>
+<div id="info"></div>
+<button id="roll">Roll Dice</button>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const urlParts = window.location.pathname.split('/');
+const boardId = urlParts[urlParts.length -1];
+let name = localStorage.getItem('name');
+while(!name) { name = prompt('Enter your name'); }
+localStorage.setItem('name', name);
+const socket = io();
+socket.emit('join', { boardId, name });
+
+const boardEl = document.getElementById('board');
+const infoEl = document.getElementById('info');
+const rollBtn = document.getElementById('roll');
+
+function createCells() {
+  boardEl.innerHTML = '';
+  for (let i = 100; i >= 1; i--) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.id = 'cell-' + i;
+    cell.textContent = i;
+    boardEl.appendChild(cell);
+  }
+}
+createCells();
+
+socket.on('state', board => {
+  document.querySelectorAll('.player').forEach(p => p.remove());
+  for (const id in board.players) {
+    const p = board.players[id];
+    const cell = document.getElementById('cell-' + p.position);
+    if (cell) {
+      const marker = document.createElement('div');
+      marker.className = 'player';
+      marker.title = p.name;
+      cell.appendChild(marker);
+    }
+  }
+  infoEl.textContent = 'Current turn: ' + (board.players[board.turnOrder[board.currentTurn]]?.name || '');
+});
+
+socket.on('message', msg => alert(msg));
+
+rollBtn.onclick = () => {
+  socket.emit('roll', { boardId });
+};
+</script>
+<p><a href="/new">New Board</a></p>
+</body>
+</html>
