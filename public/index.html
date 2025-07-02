@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Snakes and Ladders</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; }
+  #boardWrapper { position: relative; width: 400px; margin: auto; }
+  #board { display: grid; grid-template-columns: repeat(10, 40px); grid-template-rows: repeat(10, 40px); }
+  #lines { position: absolute; top: 0; left: 0; width: 400px; height: 400px; pointer-events: none; }
+  .cell { border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; font-size: 12px; position: relative; }
+  .player { position: absolute; bottom: 2px; left: 2px; border-radius: 50%; width: 10px; height: 10px; }
+</style>
+</head>
+<body>
+<h1>Snakes and Ladders</h1>
+<div id="boardWrapper">
+  <svg id="lines"></svg>
+  <div id="board"></div>
+</div>
+<div id="info"></div>
+<button id="roll">Roll Dice</button>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const urlParts = window.location.pathname.split('/');
+const boardId = urlParts[urlParts.length -1];
+let name = localStorage.getItem('name');
+while(!name) { name = prompt('Enter your name'); }
+localStorage.setItem('name', name);
+const socket = io();
+socket.emit('join', { boardId, name });
+
+const boardEl = document.getElementById('board');
+const infoEl = document.getElementById('info');
+const rollBtn = document.getElementById('roll');
+
+function createCells(board) {
+  boardEl.innerHTML = '';
+  for (let i = 100; i >= 1; i--) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.id = 'cell-' + i;
+    cell.textContent = i;
+    boardEl.appendChild(cell);
+  }
+}
+
+function cellCoords(n) {
+  const index = 100 - n;
+  const row = Math.floor(index / 10);
+  const col = index % 10;
+  return { x: col * 40 + 20, y: row * 40 + 20 };
+}
+
+function drawLines(board) {
+  const svg = document.getElementById('lines');
+  svg.innerHTML = '';
+  const snakeColors = ['red','green','blue','purple','orange','teal','magenta'];
+  let s = 0;
+  for (const from in board.snakes) {
+    const to = board.snakes[from];
+    const start = cellCoords(Number(from));
+    const end = cellCoords(Number(to));
+    const color = snakeColors[s % snakeColors.length];
+    s++;
+    const offset = 10;
+    const mid1 = { x: (2*start.x+end.x)/3 + offset, y: (2*start.y+end.y)/3 - offset };
+    const mid2 = { x: (start.x+2*end.x)/3 - offset, y: (start.y+2*end.y)/3 + offset };
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M ${start.x} ${start.y} L ${mid1.x} ${mid1.y} L ${mid2.x} ${mid2.y} L ${end.x} ${end.y}`);
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '3');
+    path.setAttribute('fill', 'none');
+    svg.appendChild(path);
+  }
+  for (const from in board.ladders) {
+    const to = board.ladders[from];
+    const start = cellCoords(Number(from));
+    const end = cellCoords(Number(to));
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const offX = -dy / len * 5;
+    const offY = dx / len * 5;
+    [1,-1].forEach(m => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', start.x + m*offX);
+      line.setAttribute('y1', start.y + m*offY);
+      line.setAttribute('x2', end.x + m*offX);
+      line.setAttribute('y2', end.y + m*offY);
+      line.setAttribute('stroke', '#964B00');
+      line.setAttribute('stroke-width', '3');
+      svg.appendChild(line);
+    });
+  }
+}
+
+const playerColors = {};
+const palette = ['red','blue','green','orange','purple','pink','cyan','lime'];
+
+socket.on('state', board => {
+  createCells(board);
+  drawLines(board);
+  document.querySelectorAll('.player').forEach(p => p.remove());
+  board.turnOrder.forEach((id, i) => { playerColors[id] = palette[i % palette.length]; });
+  const groups = {};
+  for (const id in board.players) {
+    const p = board.players[id];
+    if (!groups[p.position]) groups[p.position] = [];
+    groups[p.position].push({ id, p });
+  }
+  for (const pos in groups) {
+    const cell = document.getElementById('cell-' + pos);
+    if (!cell) continue;
+    const list = groups[pos];
+    list.forEach((entry, idx) => {
+      const marker = document.createElement('div');
+      marker.className = 'player';
+      marker.title = entry.p.name;
+      marker.style.background = playerColors[entry.id] || 'yellow';
+      marker.style.left = 2 + (idx % 3) * 12 + 'px';
+      marker.style.bottom = 2 + Math.floor(idx / 3) * 12 + 'px';
+      cell.appendChild(marker);
+    });
+  }
+  infoEl.textContent = 'Current turn: ' + (board.players[board.turnOrder[board.currentTurn]]?.name || '');
+});
+
+socket.on('message', msg => alert(msg));
+
+rollBtn.onclick = () => {
+  socket.emit('roll', { boardId });
+};
+</script>
+<p><a href="/new">New Board</a></p>
+</body>
+</html>
