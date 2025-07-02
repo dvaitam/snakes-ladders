@@ -12,8 +12,8 @@ app.use(express.static('public'));
 // In-memory boards
 const boards = {};
 
-function createBoard() {
-  const id = uuidv4();
+function createBoard(id = uuidv4()) {
+
   const snakes = {};
   const ladders = {};
   // generate 5 snakes and 5 ladders
@@ -51,7 +51,8 @@ app.get('/new', (req, res) => {
 
 app.get('/board/:id', (req, res) => {
   const { id } = req.params;
-  if (!boards[id]) createBoard();
+  if (!boards[id]) createBoard(id);
+
   res.sendFile(__dirname + '/public/index.html');
 });
 
@@ -75,6 +76,8 @@ io.on('connection', (socket) => {
     const player = board.players[socket.id];
     if (!player) return;
     const roll = Math.floor(Math.random() * 6) + 1;
+    io.to(boardId).emit('message', `${player.name} rolled a ${roll}`);
+
     let newPos = player.position + roll;
     if (newPos > 100) newPos = 100 - (newPos - 100); // bounce back
     if (board.snakes[newPos]) newPos = board.snakes[newPos];

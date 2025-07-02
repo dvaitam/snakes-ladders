@@ -29,19 +29,24 @@ const boardEl = document.getElementById('board');
 const infoEl = document.getElementById('info');
 const rollBtn = document.getElementById('roll');
 
-function createCells() {
+function createCells(board) {
+
   boardEl.innerHTML = '';
   for (let i = 100; i >= 1; i--) {
     const cell = document.createElement('div');
     cell.className = 'cell';
     cell.id = 'cell-' + i;
-    cell.textContent = i;
+    let txt = i.toString();
+    if (board.snakes[i]) txt += " \u2193" + board.snakes[i];
+    if (board.ladders[i]) txt += " \u2191" + board.ladders[i];
+    cell.textContent = txt;
     boardEl.appendChild(cell);
   }
 }
-createCells();
 
 socket.on('state', board => {
+  createCells(board);
+
   document.querySelectorAll('.player').forEach(p => p.remove());
   for (const id in board.players) {
     const p = board.players[id];
