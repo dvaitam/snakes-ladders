@@ -10,6 +10,7 @@
   #lines { position: absolute; top: 0; left: 0; width: 400px; height: 400px; pointer-events: none; }
   .cell { border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; font-size: 12px; position: relative; }
   .player { position: absolute; bottom: 2px; left: 2px; border-radius: 50%; width: 10px; height: 10px; }
+
 </style>
 </head>
 <body>
@@ -18,6 +19,7 @@
   <svg id="lines"></svg>
   <div id="board"></div>
 </div>
+
 <div id="info"></div>
 <button id="roll">Roll Dice</button>
 <script src="/socket.io/socket.io.js"></script>
@@ -103,6 +105,7 @@ socket.on('state', board => {
   drawLines(board);
   document.querySelectorAll('.player').forEach(p => p.remove());
   board.turnOrder.forEach((id, i) => { playerColors[id] = palette[i % palette.length]; });
+
   for (const id in board.players) {
     const p = board.players[id];
     const cell = document.getElementById('cell-' + p.position);
@@ -111,6 +114,7 @@ socket.on('state', board => {
       marker.className = 'player';
       marker.title = p.name;
       marker.style.background = playerColors[id] || 'yellow';
+
       cell.appendChild(marker);
     }
   }
