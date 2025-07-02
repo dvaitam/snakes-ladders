@@ -122,6 +122,7 @@ socket.on('state', board => {
       marker.style.bottom = 2 + Math.floor(idx / 3) * 12 + 'px';
       cell.appendChild(marker);
     });
+
   }
   infoEl.textContent = 'Current turn: ' + (board.players[board.turnOrder[board.currentTurn]]?.name || '');
 });
