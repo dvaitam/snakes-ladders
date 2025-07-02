@@ -30,6 +30,7 @@ const infoEl = document.getElementById('info');
 const rollBtn = document.getElementById('roll');
 
 function createCells(board) {
+
   boardEl.innerHTML = '';
   for (let i = 100; i >= 1; i--) {
     const cell = document.createElement('div');
@@ -45,6 +46,7 @@ function createCells(board) {
 
 socket.on('state', board => {
   createCells(board);
+
   document.querySelectorAll('.player').forEach(p => p.remove());
   for (const id in board.players) {
     const p = board.players[id];
